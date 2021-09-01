@@ -1,0 +1,62 @@
+#!/bin/bash
+#set -x
+
+not_mounted=()
+
+mount_check(){
+                local mount_point_check_list=()
+                local mount_point_list=()
+                local mounted=()
+
+                mount_point_check_list_path="/Apps/NPICOEDatamig/FP/Joe"
+
+                readarray mount_point_check_list < <(cat ${mount_point_check_list_path}/mount-point-check-list.txt|cut -d ':' -f2-|tr -d ' ')
+                printf '%s\n' "${mount_point_check_list[@]}"
+
+                readarray mount_point_list < <(df -h)
+                #  echo $mount_point_list
+                mount_point_check_list_array_len=$((${#mount_point_check_list[@]}-1))
+                #  echo $mount_point_check_list_array_len
+
+                for mount_point in ${mount_point_check_list[@]}
+                do
+                    if [[ ${mount_point_list[*]} =~ ${mount_point} ]]
+                    then
+                        echo "MOUNT_POINT : $mount_point is available in server"
+                    else
+                        echo "MOUNT_POINT : $mount_point is not available in server"
+                        not_mounted+=($mount_point)
+                    fi
+                done
+                echo "not mounted  : ${not_mounted[@]}"
+                if [[ ${#not_mounted[@]} -gt 0 ]]
+                then
+                    echo "send mail for not mounted list ${not_mounted[@]}"
+                    return 1
+                else
+                    return 0
+                fi
+
+}
+
+while :
+do
+    for ((i=1;i>=1;i++))
+    do
+        status=$(mount_check)
+        if [[ "$status" -eq 0 ]]
+        then
+            echo "execution $i"
+            echo "systemctl start license"
+            echo "systemctl start apache"
+            echo "systemctl start mws"
+            break;
+        else
+            echo "execution $i"
+            sleep 15
+        fi
+        echo "done1"
+    done
+    echo "done2"
+done
+#echo "${mount[@]} are not mounted"|mailx -s " TEST-MAIL mount points are not available for $2 server" enggdevopsteam@ge.com
