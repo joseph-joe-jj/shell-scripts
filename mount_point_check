@@ -1,16 +1,18 @@
 #!/bin/bash
 #set -x
 
-not_mounted=()
+
+retval=""
 
 mount_check(){
+                local not_mounted=()
                 local mount_point_check_list=()
                 local mount_point_list=()
-                local mounted=()
+                # local mounted=()
 
-                mount_point_check_list_path="/Apps/NPICOEDatamig/FP/Joe"
+                mount_point_check_list_path="/home/joe/Desktop/test12"
 
-                readarray mount_point_check_list < <(cat ${mount_point_check_list_path}/mount-point-check-list.txt|cut -d ':' -f2-|tr -d ' ')
+                readarray mount_point_check_list < <(cat ${mount_point_check_list_path}/list.txt|cut -d ':' -f2-|tr -d '\t')
                 printf '%s\n' "${mount_point_check_list[@]}"
 
                 readarray mount_point_list < <(df -h)
@@ -20,7 +22,7 @@ mount_check(){
 
                 for mount_point in ${mount_point_check_list[@]}
                 do
-                    if [[ ${mount_point_list[*]} =~ ${mount_point} ]]
+                    if [[ ${mount_point_list[@]} =~ ${mount_point} ]]
                     then
                         echo "MOUNT_POINT : $mount_point is available in server"
                     else
@@ -32,25 +34,32 @@ mount_check(){
                 if [[ ${#not_mounted[@]} -gt 0 ]]
                 then
                     echo "send mail for not mounted list ${not_mounted[@]}"
-                    return 1
+                    retval=1
                 else
-                    return 0
+                    retval=0
                 fi
 
 }
+
+
+# mount_check
+# status=${retval}
+# echo "status : ${status}"
 
 while :
 do
     for ((i=1;i>=1;i++))
     do
-        status=$(mount_check)
-        if [[ "$status" -eq 0 ]]
+        mount_check
+        status=${retval}
+        echo "status : ${retval}"
+        if [[ "$retval" -eq 0 ]]
         then
             echo "execution $i"
             echo "systemctl start license"
             echo "systemctl start apache"
             echo "systemctl start mws"
-            break;
+            break
         else
             echo "execution $i"
             sleep 15
@@ -58,5 +67,7 @@ do
         echo "done1"
     done
     echo "done2"
+    break
 done
-#echo "${mount[@]} are not mounted"|mailx -s " TEST-MAIL mount points are not available for $2 server" enggdevopsteam@ge.com
+
+# echo "${mount[@]} are not mounted"|mailx -s " TEST-MAIL mount points are not available for $2 server" enggdevopsteam@bc.com
